@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	patterns "github.com/wellingtonbrunodev/quake-log/internal/constants"
+	constants "github.com/wellingtonbrunodev/quake-log/internal/constants"
 	utils "github.com/wellingtonbrunodev/quake-log/pkg/utils"
 )
 
@@ -15,12 +15,12 @@ var db Db
 
 var currentGame int
 
-var PATTERN_LINE, PATTERN_USER_INFO *regexp.Regexp
+var PATTERN_LINE, PATTERN_USER_INFO, PATTERN_KILL *regexp.Regexp
 
 func initializeDb() {
 	currentGame = 0
 	db = Db{
-		Matches: map[string]Match{},
+		Matches: map[string]*Match{},
 	}
 }
 
@@ -28,14 +28,19 @@ func initializeVars() {
 
 	var err error
 
-	PATTERN_LINE, err = regexp.Compile(patterns.REGEX_LINE)
+	PATTERN_LINE, err = regexp.Compile(constants.REGEX_LINE)
 	if err != nil {
 		panic("error when compiling regex for line")
 	}
 
-	PATTERN_USER_INFO, err = regexp.Compile(patterns.REGEX_USER_INFO)
+	PATTERN_USER_INFO, err = regexp.Compile(constants.REGEX_USER_INFO)
 	if err != nil {
 		panic("error when compiling regex for user info")
+	}
+
+	PATTERN_KILL, err = regexp.Compile(constants.REGEX_KILL)
+	if err != nil {
+		panic("error when compiling regex for kill")
 	}
 
 	initializeDb()
@@ -68,7 +73,15 @@ func processLine(line string) error {
 	case "ShutdownGame":
 		processShutdownGame()
 	case "ClientUserinfoChanged":
-		processClientUserinfoChanged(parsedGroups[2])
+		err := processClientUserinfoChanged(parsedGroups[2])
+		if err != nil {
+			return err
+		}
+	case "Kill":
+		err := processKill(parsedGroups[2])
+		if err != nil {
+			return err
+		}
 	default:
 		return nil
 	}
@@ -78,7 +91,12 @@ func processLine(line string) error {
 func processInitGame() {
 	currentGame = len(db.Matches) + 1
 	id := fmt.Sprint("game_", currentGame)
-	db.Matches[id] = Match{Id: id, Players: make(map[int]string), Kills: make(map[string]int)}
+	db.Matches[id] = &Match{Id: id,
+		Players:      make(map[int]string),
+		Kills:        make(map[int]int),
+		DeathsCauses: make(map[string]int),
+		TotalKills:   0,
+	}
 }
 
 func processShutdownGame() {
@@ -100,6 +118,55 @@ func processClientUserinfoChanged(info string) error {
 	userName := parsedGroups[2]
 
 	db.Matches[gameId].Players[userId] = userName
+
+	return nil
+}
+
+func processKill(info string) error {
+	parsedGroups := PATTERN_KILL.FindStringSubmatch(info)
+
+	if len(parsedGroups) < 4 {
+		return errors.New("Failed while parsing kill info: " + info)
+	}
+
+	gameId := fmt.Sprint("game_", currentGame)
+
+	var killerId, killedId int
+	var err error
+
+	killerId, err = strconv.Atoi(parsedGroups[1])
+	if err != nil {
+		return err
+	}
+
+	killedId, err = strconv.Atoi(parsedGroups[2])
+	if err != nil {
+		return err
+	}
+
+	deathMode := parsedGroups[3]
+
+	if killerId != constants.WORLD_ID {
+
+		if killerId != killedId {
+			userKills := db.Matches[gameId].Kills[killerId]
+			userKills++
+			db.Matches[gameId].Kills[killerId] = userKills
+		}
+
+		deathsCauses := db.Matches[gameId].DeathsCauses[deathMode]
+		deathsCauses++
+		db.Matches[gameId].DeathsCauses[deathMode] = deathsCauses
+
+	} else {
+		userKills := db.Matches[gameId].Kills[killedId]
+		userKills--
+		db.Matches[gameId].Kills[killedId] = userKills
+	}
+
+	totalKills := db.Matches[gameId].TotalKills
+	totalKills++
+	db.Matches[gameId].TotalKills = totalKills
 
 	return nil
 }
