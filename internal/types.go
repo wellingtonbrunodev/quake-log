@@ -1,9 +1,11 @@
 package internal
 
+// Db Represents a database containing the matches info
 type Db struct {
 	Matches map[string]*Match
 }
 
+// Match represents a game and its info
 type Match struct {
 	Id           string
 	TotalKills   int
