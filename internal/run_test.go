@@ -64,28 +64,7 @@ func TestProcessKill(t *testing.T) {
 	initializeVars()
 	processInitGame()
 
-	lines := [...]string{"1022 2 22: <world> killed Isgalamido by MOD_TRIGGER_HURT",
-		"1022 2 22: <world> killed Isgalamido by MOD_TRIGGER_HURT",
-		"1022 2 22: <world> killed Isgalamido by MOD_TRIGGER_HURT",
-		"1022 2 22: <world> killed Isgalamido by MOD_TRIGGER_HURT",
-		"2 3 7: Isgalamido killed Mocinha by MOD_ROCKET_SPLASH",
-		"2 2 7: Isgalamido killed Isgalamido by MOD_ROCKET_SPLASH",
-		"2 2 7: Isgalamido killed Isgalamido by MOD_ROCKET_SPLASH",
-		"3 2 6: Isgalamido killed Mocinha by MOD_ROCKET"}
-
-	var expectedResult = Match{
-		Id:           "game_1",
-		TotalKills:   8,
-		Kills:        map[int]int{2: -3, 3: 1},
-		DeathsCauses: map[string]int{"MOD_ROCKET_SPLASH": 3, "MOD_ROCKET": 1},
-	}
-
-	for _, line := range lines {
-		err := processKill(line)
-		if err != nil {
-			panic(err)
-		}
-	}
+	expectedResult := executeBasicGame()
 
 	if expectedResult.TotalKills != db.Matches["game_1"].TotalKills {
 		t.Fatalf(`expected TotalKills result should be %d, but it was %d`, expectedResult.TotalKills, db.Matches["game_1"].TotalKills)
@@ -103,6 +82,52 @@ func TestProcessKill(t *testing.T) {
 
 	if string(expectedDeathsCauseJson) != string(returnedDeathsCauseJson) {
 		t.Fatalf(`expected kills result should be %s, but it was %s`, expectedDeathsCauseJson, returnedDeathsCauseJson)
+	}
+
+}
+
+func executeBasicGame() Match {
+	lines := [...]string{"1022 2 22: <world> killed Isgalamido by MOD_TRIGGER_HURT",
+		"1022 2 22: <world> killed Isgalamido by MOD_TRIGGER_HURT",
+		"1022 2 22: <world> killed Isgalamido by MOD_TRIGGER_HURT",
+		"1022 2 22: <world> killed Isgalamido by MOD_TRIGGER_HURT",
+		"2 3 7: Isgalamido killed Mocinha by MOD_ROCKET_SPLASH",
+		"2 2 7: Isgalamido killed Isgalamido by MOD_ROCKET_SPLASH",
+		"2 2 7: Isgalamido killed Isgalamido by MOD_ROCKET_SPLASH",
+		"3 2 6: Isgalamido killed Mocinha by MOD_ROCKET"}
+
+	var basicGame = Match{
+		Id:           "game_1",
+		TotalKills:   8,
+		Players:      map[int]string{},
+		Kills:        map[int]int{2: -3, 3: 1},
+		DeathsCauses: map[string]int{"MOD_ROCKET_SPLASH": 3, "MOD_ROCKET": 1},
+	}
+
+	for _, line := range lines {
+		err := processKill(line)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return basicGame
+}
+
+func TestGenerateReport(t *testing.T) {
+	initializeVars()
+	processInitGame()
+	basicGame := executeBasicGame()
+
+	expectedGame := &Db{
+		Matches: map[string]*Match{"game_1": &basicGame},
+	}
+
+	expectedGameJson, _ := json.Marshal(expectedGame.Matches)
+	finalGameJson, _ := generateReport()
+
+	if string(expectedGameJson) != string(finalGameJson) {
+		t.Fatalf(`expected game result should be %s, but it was %s`, expectedGameJson, finalGameJson)
 	}
 
 }

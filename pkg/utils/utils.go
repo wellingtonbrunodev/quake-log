@@ -1,6 +1,9 @@
 package utils
 
-import "os"
+import (
+	"bufio"
+	"os"
+)
 
 func check(e error) {
 	if e != nil {
@@ -8,8 +11,20 @@ func check(e error) {
 	}
 }
 
-func ReadFile(filepath string) string {
-	content, err := os.ReadFile(filepath)
+func ReadFile(filepath string) []string {
+
+	readFile, err := os.Open(filepath)
 	check(err)
-	return string(content)
+
+	defer readFile.Close()
+
+	fileScanner := bufio.NewScanner(readFile)
+	fileScanner.Split(bufio.ScanLines)
+	var fileLines []string
+
+	for fileScanner.Scan() {
+		fileLines = append(fileLines, fileScanner.Text())
+	}
+
+	return fileLines
 }

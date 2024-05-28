@@ -1,11 +1,12 @@
 package internal
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
-	"strings"
 
 	constants "github.com/wellingtonbrunodev/quake-log/internal/constants"
 	utils "github.com/wellingtonbrunodev/quake-log/pkg/utils"
@@ -50,15 +51,35 @@ func Run() {
 
 	initializeVars()
 
-	content := utils.ReadFile("./pkg/input_files/qgames.log")
+	lines := utils.ReadFile("./pkg/input_files/qgames.log")
 
-	lines := strings.Split(content, "/n")
 	for _, line := range lines {
 		err := processLine(line)
 		if err != nil {
 			panic(err)
 		}
 	}
+
+	report, err := generateReport()
+	if err != nil {
+		panic(err)
+	}
+
+	var out bytes.Buffer
+	err = json.Indent(&out, []byte(report), "", "  ")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(out.String())
+}
+
+func generateReport() (string, error) {
+	json, err := json.Marshal(db.Matches)
+	if err != nil {
+		return "", err
+	}
+	return string(json), nil
 }
 
 func processLine(line string) error {
@@ -67,24 +88,27 @@ func processLine(line string) error {
 	}
 
 	parsedGroups := PATTERN_LINE.FindStringSubmatch(line)
-	switch parsedGroups[1] {
-	case "InitGame":
-		processInitGame()
-	case "ShutdownGame":
-		processShutdownGame()
-	case "ClientUserinfoChanged":
-		err := processClientUserinfoChanged(parsedGroups[2])
-		if err != nil {
-			return err
+	if len(parsedGroups) > 1 {
+		switch parsedGroups[1] {
+		case "InitGame":
+			processInitGame()
+		case "ShutdownGame":
+			processShutdownGame()
+		case "ClientUserinfoChanged":
+			err := processClientUserinfoChanged(parsedGroups[2])
+			if err != nil {
+				return err
+			}
+		case "Kill":
+			err := processKill(parsedGroups[2])
+			if err != nil {
+				return err
+			}
+		default:
+			return nil
 		}
-	case "Kill":
-		err := processKill(parsedGroups[2])
-		if err != nil {
-			return err
-		}
-	default:
-		return nil
 	}
+
 	return nil
 }
 
