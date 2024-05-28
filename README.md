@@ -9,7 +9,7 @@ Built on top of Go 1.22.3, to run it you need to have go installed on your machi
 To run this program just run the following:
 
 ```
-cd cmd
+cd quake-log
 
 go run cmd/main.go
 ```
