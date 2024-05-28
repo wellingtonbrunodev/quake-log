@@ -8,11 +8,11 @@ Built on top of Go 1.22.3, to run it you need to have go installed on your machi
 
 To run this program just run the following:
 
-´´´
+```
 cd cmd
 
 go run cmd/main.go
-´´´
+```
 
 
 The program will execute, process the file containing the log and print the result to the terminal.
