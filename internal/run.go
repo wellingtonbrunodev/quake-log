@@ -71,7 +71,10 @@ func Run() {
 		fmt.Println(err)
 	}
 
-	fmt.Println(out.String())
+	reportString := out.String()
+	fmt.Println(reportString)
+
+	utils.WriteFile(reportString, "./pkg/output_files/output.json")
 }
 
 func generateReport() (string, error) {

@@ -28,3 +28,9 @@ func ReadFile(filepath string) []string {
 
 	return fileLines
 }
+
+func WriteFile(content, filePath string) {
+	data := []byte(content)
+	err := os.WriteFile(filePath, data, 0666)
+	check(err)
+}
