@@ -12,8 +12,11 @@ import (
 	utils "github.com/wellingtonbrunodev/quake-log/pkg/utils"
 )
 
+// db represents an in-memory database
 var db Db
 
+// currentGame represents the id to be appended to the 'game_' string id.
+// its value increases or decreases on each InitGame or Shutdown game log
 var currentGame int
 
 var PATTERN_LINE, PATTERN_USER_INFO, PATTERN_KILL *regexp.Regexp
@@ -25,6 +28,7 @@ func initializeDb() {
 	}
 }
 
+// initializeVars certifies that all patterns and database are properly initialized only once
 func initializeVars() {
 
 	var err error
@@ -77,6 +81,7 @@ func Run() {
 	utils.WriteFile(reportString, "./pkg/output_files/output.json")
 }
 
+// generateReport reads the database and returns its content
 func generateReport() (string, error) {
 	json, err := json.Marshal(db.Matches)
 	if err != nil {
@@ -115,6 +120,7 @@ func processLine(line string) error {
 	return nil
 }
 
+// processInitGame initializes one new game and increments the currentGame counter
 func processInitGame() {
 	currentGame = len(db.Matches) + 1
 	id := fmt.Sprint("game_", currentGame)
@@ -126,10 +132,12 @@ func processInitGame() {
 	}
 }
 
+// processShutdownGame closes one game, by decreasing the currentGame counter
 func processShutdownGame() {
 	currentGame--
 }
 
+// processClientUserinfoChanged updates the user name based on its id.
 func processClientUserinfoChanged(info string) error {
 	parsedGroups := PATTERN_USER_INFO.FindStringSubmatch(info)
 
@@ -149,6 +157,8 @@ func processClientUserinfoChanged(info string) error {
 	return nil
 }
 
+// processKill executes the logic behind the kill events.
+// Also this function processes the user score and counts the deaths causes
 func processKill(info string) error {
 	parsedGroups := PATTERN_KILL.FindStringSubmatch(info)
 
