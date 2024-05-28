@@ -17,6 +17,6 @@ go run cmd/main.go
 
 The program will execute, process the file containing the log and print the result to the terminal.
 
-For convenience this program also saves the content above to a file inside the folder pkg/output_files/output.json
+For convenience this program also saves the content above to a file inside the folder `pkg/output_files/output.json`
 
-If you want to exchange the input log file for a new one just create it in the following path (replacing the old one): pkg/input_files/qgames.log
+If you want to exchange the input log file for a new one just create it in the following path (replacing the old one): `pkg/input_files/qgames.log`
